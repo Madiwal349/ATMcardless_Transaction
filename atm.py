@@ -14,8 +14,8 @@ app=Flask(__name__)
 db = pymysql.connect(
     host="localhost",
     user="root",
-    password="",
-    database="atmdata",
+    password="Madi@123",
+    database="atmdatabase",
     cursorclass=pymysql.cursors.DictCursor
 )
 cursor = db.cursor()
@@ -25,12 +25,12 @@ def send_email_alert(to_email, subject, body):
     msg = EmailMessage()
     msg.set_content(body)
     msg['Subject'] = subject
-    msg['From'] = 'mahadevhulsure65@gmail.com'
+    msg['From'] = 'madivalatalawar@gmail.com.com'
     msg['To'] = to_email
 
     # Gmail or SMTP credentials
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    server.login('mahadevhulsure65@gmail.com', '')  
+    server.login('madivalatalawar@gmail.com.com', '')  
     server.send_message(msg)
     server.quit()
     
@@ -41,7 +41,7 @@ current_time = datetime.now().strftime("%d-%m-%Y %I:%M:%S %p")
 def validate_pin(mobile,bank_name):
     cursor.execute("SELECT * FROM account WHERE phone = %s AND bank_name = %s",(mobile, bank_name))
     account = cursor.fetchone()
-    if account['pin'] is None:
+    if account.get('pin') is None:
         return False
     else:
         return True
@@ -78,22 +78,27 @@ def authenticate(known_face_path):
               break
 
     # Show camera feed
-        cv2.imshow('Authentication', frame)
+        def authenticate(face_path):
+            cap = cv2.VideoCapture(0)
 
-        if authenticated:
-          return True
+            ret, frame = cap.read()
+            cap.release()
 
-        if time.time() - start_time > 10:
+        if not ret:
             return False
-            # break
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-           break
 
-    video_capture.release()
-    cv2.destroyAllWindows()
+    # Convert BGR to RGB
+        rgb_frame = frame[:, :, ::-1]
 
-    if not authenticated:
-       return False
+    # Detect face
+        faces = face_recognition.face_locations(rgb_frame)
+
+        if len(faces) > 0:
+            print("Face detected")
+            return True
+        else:
+            print("No face detected")
+            return False
 
 @app.route('/', methods=['GET'])
 def base():
@@ -119,13 +124,14 @@ def home():
         # print(f"User matched: {user['AccountNumber']}")
 
         face_path = user['face']
-        # face_path="images/mahadev.jpg"
+        # face_path="images/madival.jpg"
         if authenticate(face_path):
             success="Authentication Successfull"
             return render_template('home.html', mobile=mobile, success=success ,ask_pin=True,accounts=accounts)
         else:
             fail="Face authentication failed...."
             return render_template('home.html',fail=fail)
+        
 
     #return render_template('home.html')
 #pin entry route
@@ -137,6 +143,8 @@ def enter_pin():
         return render_template("enter_pin.html", mobile=mobile, bank=bank, check=True)
     else:
         return render_template("enter_pin.html", check=False, mobile=mobile, bank=bank) 
+    
+
 # menu route
 @app.route('/generate_pin', methods=['GET','POST'])
 def generate_pin():
@@ -157,7 +165,8 @@ def generate_pin():
         db.commit()
         print("pin updated:",pin)
         return render_template("generate_pin.html", mobile=mobile, bank_name=bank_name, check="POST",pin=pin)
-        
+
+
 @app.route('/menu', methods=['POST'])
 def atmmenu():
     mobile = request.form.get('mobile','').strip()
@@ -179,7 +188,7 @@ def atmmenu():
         invalid_pin="Invalid PIN. Please try again."
         return render_template("menu.html",invaild_pin=invalid_pin, user=False)
 
-    return render_template("menu.html", name=account['name'], account=user['account_number'], user=True, mobile=user['phone'], bank_name=user['bank_name'],face=account['face'])
+    return render_template("menu.html", name=account.get('name'), account=user['account_number'], user=True, mobile=user['phone'], bank_name=user['bank_name'],face=account['face'])
     
 
 # transactions route 
@@ -205,7 +214,7 @@ def balance():
     #     )
         
     # print("user:", user)
-    return render_template("balance.html",balance=account['amount'], check="inquery", mobile=mobile) # You can pull from DB later
+    return render_template("balance.html",balance=account.get('balance',0), check="inquery", mobile=mobile) # You can pull from DB later
 
 @app.route('/withdraw', methods=['GET', 'POST'])
 def withdraw():
@@ -221,9 +230,9 @@ def withdraw():
         cursor.execute("SELECT * FROM account WHERE bank_name = %s AND phone =%s", (bank_name , mobile))
         account=cursor.fetchone()
         # print("amount",account['amount'])
-        if account['amount']<int(amount):
-            insufficient_fund="Insufficient Amount in your Account"
-            return render_template("balance.html", message=insufficient_fund, check="debited_amount")
+        if account['balance']<int(amount):
+            insufficient_balance="Insufficient Amount in your Account"
+            return render_template("balance.html", message=insufficient_balance, check="debited_amount")
         elif int(amount) <= 99:
             message="withdrawal amount should be greater that 100"
             return render_template("balance.html",message=message , check="debited_amount")
@@ -246,12 +255,14 @@ def withdraw():
                 body=f"Dear customer, amount  {amount} debited from  your Acc No. XXXXXX{last_four_digits['four_digit']} on {current_time} Avl. Balance: {account['amount']} "
             ) 
             msg=f"{amount} withdraw successfully"
-            return render_template("balance.html", amount=amount, check="debited_amount",message=msg)
+            return render_template("balance.html", amount=balance, check="debited_amount",message=msg)
+
 
 @app.route('/deposit')
 def deposit():
     message= "Please insert cash into the Machine"
     return render_template("balance.html", message=message , check="deposite_amount")
+
 
 @app.route('/bank_display', methods=['GET','POST'])
 def bank_display():
@@ -265,6 +276,7 @@ def bank_display():
     if not banks:
         return "invaild no."
     return render_template("bank_display.html", banks=banks, reciver_mobile=reciver_mobile, sender_mobile=sender_mobile, sender_bank_name=sender_bank_name)
+
 
 @app.route('/transfer',methods=['GET', 'POST'])
 def transfer():
