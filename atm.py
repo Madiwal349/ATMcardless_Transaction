@@ -216,6 +216,7 @@ def balance():
     # print("user:", user)
     return render_template("balance.html",balance=account.get('balance',0), check="inquery", mobile=mobile) # You can pull from DB later
 
+
 @app.route('/withdraw', methods=['GET', 'POST'])
 def withdraw():
     if request.method == 'GET':
