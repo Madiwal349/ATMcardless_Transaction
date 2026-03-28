@@ -25,12 +25,12 @@ def send_email_alert(to_email, subject, body):
     msg = EmailMessage()
     msg.set_content(body)
     msg['Subject'] = subject
-    msg['From'] = 'madivalatalawar@gmail.com.com'
-    msg['To'] = to_email
+    msg['From'] = 'madiwalatalawar@gmail.com'
+    msg['To'] = 'madiwalatalawar@gmail.com'
 
     # Gmail or SMTP credentials
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    server.login('madivalatalawar@gmail.com.com', '')  
+    server.login('madiwalatalawar@gmail.com', 'qucjgmsjttfdvnjx') 
     server.send_message(msg)
     server.quit()
     
@@ -103,6 +103,7 @@ def authenticate(known_face_path):
 @app.route('/', methods=['GET'])
 def base():
     return render_template('index.html')
+
 
 @app.route('/home',methods=['GET','POST'])
 def home():
@@ -236,9 +237,9 @@ def withdraw():
             return render_template("balance.html", message=insufficient_balance, check="debited_amount")
         elif int(amount) <= 99:
             message="withdrawal amount should be greater that 100"
-            return render_template("balance.html",message=message , check="debited_amount")
+            return render_template("balance.html", check="debited_amount", message=msg)
         else:
-            cursor.execute("UPDATE account SET amount =amount - %s WHERE bank_name = %s AND phone= %s",(amount, bank_name, mobile))
+            cursor.execute("UPDATE account SET balance = balance - %s WHERE bank_name = %s AND phone= %s",(amount, bank_name, mobile))
             db.commit()
             
             cursor.execute("SELECT RIGHT(account_number , 4) AS four_digit FROM account WHERE bank_name = %s AND phone =%s",(bank_name , mobile))
@@ -253,7 +254,7 @@ def withdraw():
             send_email_alert(
                 to_email=user['email'],
                 subject="Transaction Alert",
-                body=f"Dear customer, amount  {amount} debited from  your Acc No. XXXXXX{last_four_digits['four_digit']} on {current_time} Avl. Balance: {account['amount']} "
+                body = f"Dear customer, amount {amount} debited from your Acc No. XXXXXX{last_four_digits['four_digit']} on {current_time} Avl. Balance: {account['balance']}"
             ) 
             msg=f"{amount} withdraw successfully"
             return render_template("balance.html", amount=balance, check="debited_amount",message=msg)
@@ -300,7 +301,7 @@ def transfer():
         cursor.execute("SELECT RIGHT(account_number , 4) AS four_digit FROM account WHERE phone = %s AND bank_name = %s",(mobile, bank_name))
         last_four_digits=cursor.fetchone()
         
-        cursor.execute("UPDATE account SET amount = amount + %s WHERE phone = %s AND bank_name = %s", (amount,mobile,bank_name))
+        cursor.execute("UPDATE account SET balance= balance + %s WHERE phone = %s AND bank_name = %s", (amount,mobile,bank_name))
         db.commit()
         # sending email to  reciver
         if cursor.rowcount>0:
@@ -316,7 +317,7 @@ def transfer():
         cursor.execute("SELECT RIGHT(account_number , 4) AS four_digits FROM account WHERE phone = %s AND bank_name = %s",(sender_mobile, sender_bank_name))
         last_four_digit=cursor.fetchone()
         
-        cursor.execute("UPDATE account SET amount = amount - %s WHERE phone= %s AND bank_name = %s", (amount,sender_mobile,sender_bank_name))
+        cursor.execute("UPDATE account SET balance = balance - %s WHERE phone= %s AND bank_name = %s", (amount,sender_mobile,sender_bank_name))
         db.commit()
         
         #sending email to sender
