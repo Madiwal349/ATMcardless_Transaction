@@ -30,7 +30,7 @@ def send_email_alert(to_email, subject, body):
 
     # Gmail or SMTP credentials
     server = smtplib.SMTP_SSL('smtp.gmail.com', 465)
-    server.login('madiwalatalawar@gmail.com', 'qucjgmsjttfdvnjx') 
+    server.login('madiwalatalawar@gmail.com', '') 
     server.send_message(msg)
     server.quit()
     
